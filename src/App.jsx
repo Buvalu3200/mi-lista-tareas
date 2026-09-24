@@ -1,11 +1,23 @@
+/**
+ * Proyecto: Mi Lista de Tareas (TaskFlow)
+ * Evaluación: Corte 1 - Frameworks en JavaScript
+ * Autores: Kevin Alejandro Díaz Hernández y Luisa Catalina Aponte Caceras
+ * 
+ * Descripción: Componente principal de React que gestiona el CRUD completo
+ * de tareas, maneja el estado de las categorías y controla las animaciones
+ * de la interfaz mediante Hooks (useState, useEffect, useRef).
+ */
+
 import { useState, useRef, useEffect } from "react";
 import { Check, Trash2, Plus, GraduationCap, User, Wallet, Minus, X } from "lucide-react";
 
-// Importa aquí las imágenes de la mascota con transparencia (.png)
+// Importación de assets locales (imágenes de la mascota)
 import birdPencil from "./assets/bird-pencil.png"; // Academic
 import birdCoin from "./assets/bird-coin.png";     // Expenses
 import birdBall from "./assets/bird-ball.png";     // Personal
 
+// Se definen las constantes fuera del componente para evitar 
+// que se vuelvan a crear en cada renderizado de React, optimizando la memoria.
 const CATEGORIES = [
   { id: "Academic", label: "Academic", icon: GraduationCap, mascot: birdPencil },
   { id: "Personal", label: "Personal", icon: User, mascot: birdBall },
@@ -32,6 +44,7 @@ const MOTIVATIONAL_QUOTES = [
 const ANIMATION_DURATION_MS = 1000;
 
 export default function App() {
+  // ----- ESTADOS PRINCIPALES -----
   const [tasks, setTasks] = useState(INITIAL_TASKS);
   const [activeCategory, setActiveCategory] = useState("Academic");
   const [isAdding, setIsAdding] = useState(false);
@@ -42,9 +55,11 @@ export default function App() {
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editText, setEditText] = useState("");
 
-  // Frase motivacional dinámica
+  // ----- LÓGICA DE FRASE MOTIVACIONAL -----
   const [quoteIndex, setQuoteIndex] = useState(0);
 
+  // useEffect gestiona el ciclo de vida: crea un intervalo al montar 
+  // el componente y lo limpia (clearInterval) al desmontarlo para evitar fugas de memoria.
   useEffect(() => {
     const interval = setInterval(() => {
       setQuoteIndex((prev) => (prev + 1) % MOTIVATIONAL_QUOTES.length);
@@ -52,12 +67,16 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // ----- LÓGICA DE ANIMACIONES -----
   const [animationClass, setAnimationClass] = useState(null);
   const [animationKey, setAnimationKey] = useState(0);
+  // useRef mantiene la referencia del timeout sin provocar re-renders
   const animationTimeoutRef = useRef(null);
 
   const triggerMascotAnimation = (className) => {
+    // Evita que múltiples animaciones se solapen si el usuario hace clics rápidos
     if (animationTimeoutRef.current) clearTimeout(animationTimeoutRef.current);
+    
     setAnimationClass(className);
     setAnimationKey((prevKey) => prevKey + 1);
 
@@ -66,18 +85,23 @@ export default function App() {
     }, ANIMATION_DURATION_MS);
   };
 
+  // ----- VARIABLES DERIVADAS -----
+  // Se calculan al vuelo basándose en el estado actual de las tareas
   const filteredTasks = tasks.filter((task) => task.category === activeCategory);
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((task) => task.done).length;
   const progressPercent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
   const activeMascot = getCategory(activeCategory).mascot;
 
+  // ----- FUNCIONES CRUD -----
+
+  // CREATE: Agrega una nueva tarea manteniendo la inmutabilidad del estado
   const handleAddTask = () => {
     const trimmedText = newTaskText.trim();
     if (trimmedText === "") return;
 
     const newTask = {
-      id: Date.now(),
+      id: Date.now(), // Generación simple de ID único basado en el tiempo
       text: trimmedText,
       category: activeCategory,
       done: false,
@@ -89,12 +113,13 @@ export default function App() {
     triggerMascotAnimation("animate-bounce");
   };
 
-  // ----- FUNCIONES DE EDICIÓN (UPDATE) -----
+  // INIT UPDATE: Prepara los estados para habilitar el modo de edición en la UI
   const handleStartEdit = (task) => {
     setEditingTaskId(task.id);
     setEditText(task.text);
   };
 
+  // SAVE UPDATE: Guarda el nuevo texto usando .map para no mutar el array original
   const handleSaveEdit = (id) => {
     const trimmed = editText.trim();
     if (trimmed !== "") {
@@ -108,6 +133,7 @@ export default function App() {
     setEditText("");
   };
 
+  // TOGGLE STATUS: Cambia el estado de "completado" de una tarea específica
   const handleToggleTask = (id) => {
     let willBeCompleted = false;
     setTasks((prevTasks) =>
@@ -120,12 +146,16 @@ export default function App() {
     if (willBeCompleted) triggerMascotAnimation("animate-spin");
   };
 
+  // DELETE: Filtra la tarea seleccionada, eliminándola del nuevo array
   const handleDeleteTask = (id) => {
     setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
   };
 
+  // HELPER: Cuenta dinámicamente cuántas tareas existen por categoría
   const countByCategory = (categoryId) =>
     tasks.filter((task) => task.category === categoryId).length;
+
+  // ----- RENDERIZADO CONDICIONAL DE VISTAS -----
 
   // Vista reducida (burbuja flotante)
   if (!isExpanded) {
@@ -142,7 +172,7 @@ export default function App() {
     );
   }
 
-  // Vista completa con Dashboard y Widget
+  // Vista completa con Dashboard y Widget principal
   return (
     <div className="w-full h-screen bg-gradient-to-br from-slate-50 to-purple-50 relative overflow-hidden flex items-center justify-start px-16">
       
@@ -197,6 +227,7 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Barra de progreso visual */}
               <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden mt-3">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-[#820AD1] to-fuchsia-500 transition-all duration-500"
